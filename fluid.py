@@ -12,6 +12,13 @@ def main():
     Nt = 40000
     tau = 1
 
+    particule_n = 30
+    particules_x = 22 + 10*np.random.randn(particule_n)
+    particules_x_coord = [int(particules_x[i]) for i in range(particule_n)]
+    particules_y = 250*np.ones(particule_n) + 40*np.random.randn(particule_n)
+    particules_y_coord = [int(particules_y[i]) for i in range(particule_n)]
+    mass = 0.2
+
     x = np.linspace(0, Nx-1, Nx)
     y = np.linspace(0, Ny-1, Ny)
     X, Y = np.meshgrid(x, y)
@@ -30,7 +37,7 @@ def main():
     weights = np.array([4/9, 1/9, 1/36, 1/9, 1/36, 1/9, 1/36, 1/9, 1/36])
 
     # conditions initiales
-    V = np.ones((Ny,Nx,Nl)) + 0.01*np.random.randn(Ny,Nx,Nl)
+    V = np.ones((Ny,Nx,Nl)) + 0.03*np.random.randn(Ny,Nx,Nl)
 
     #on assigne à celle vers la droite (3eme noeud)
     V[:,:,3] = 3
@@ -65,7 +72,7 @@ def main():
     momentum_y = np.sum(V*cys, 2) / rho
 
     velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-    img = plt.imshow(velocity_field, cmap='Blues')
+    img = plt.imshow(velocity_field, cmap='rainbow')
     colorbar = plt.colorbar(img, label='velocity')
 
     for time in range(Nt):
@@ -113,6 +120,17 @@ def main():
 
         #plot
 
+        if time>1000:
+            plt.title("streaming")
+            for k in range(len(particules_x)):
+                particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
+                particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
+                particules_x_coord[k] = int(particules_x[k])
+                particules_y_coord[k] = int(particules_y[k])
+
+
+
+
 
         # Plot the vector field
 
@@ -136,10 +154,11 @@ def main():
             #plt.imshow(curl_normalized, cmap="bwr", interpolation='nearest')
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
             velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-            img = plt.imshow(velocity_field, cmap='Blues')
+            img = plt.imshow(velocity_field, cmap='rainbow')
             colorbar.update_normal(img)
             plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=2, arrowsize=2, arrowstyle='->', color='white')
             plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
+            plt.scatter(particules_x, particules_y, color='black', marker='x', s=200)
 
 
             plt.savefig("res/res_stream"+str(time//step)+".png")
