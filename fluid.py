@@ -58,7 +58,16 @@ def main():
     # solve
     plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
     plt.show()
+
     curl_mean=0
+    rho = np.sum(V, 2) # on additionne les vitesses des noeuds
+    momentum_x = np.sum(V*cxs, 2) / rho
+    momentum_y = np.sum(V*cys, 2) / rho
+
+    velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
+    img = plt.imshow(velocity_field, cmap='Blues')
+    colorbar = plt.colorbar(img, label='velocity')
+
     for time in range(Nt):
 
         #boundaries conditions
@@ -107,6 +116,7 @@ def main():
 
         # Plot the vector field
 
+       
         step=20
         if time%step== 0:
             dfydx = momentum_x[2:, 1:-1] - momentum_x[:-2, 1:-1]
@@ -126,8 +136,8 @@ def main():
             #plt.imshow(curl_normalized, cmap="bwr", interpolation='nearest')
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
             velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-            img = plt.imshow(velocity_field, cmap='viridis')
-            colorbar = plt.colorbar(img, label='velocity')
+            img = plt.imshow(velocity_field, cmap='Blues')
+            colorbar.update_normal(img)
             plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=2, arrowsize=2, arrowstyle='->', color='white')
             plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
 
