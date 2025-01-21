@@ -32,9 +32,7 @@ def main():
     # conditions initiales
     V = np.ones((Ny,Nx,Nl)) + 0.01*np.random.randn(Ny,Nx,Nl)
 
-    # print(len(V), len(V[0]), len(V[0][0]))
     #on assigne à celle vers la droite (3eme noeud)
-    #V[:,:,3] = 2.3
     V[:,:,3] = 3
 
     obstacle = np.full((Ny,Nx), False) # False : libre, True : obstacle
@@ -58,7 +56,6 @@ def main():
 
 
     # solve
-    #plt.imshow(Cylindre)
     plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
     plt.show()
     curl_mean=0
@@ -101,7 +98,6 @@ def main():
 
         V_eq = np.zeros(V.shape)
         for i,cx,cy,w in zip(range(Nl), cxs, cys, weights):
-           # V_eq[:,:,i] = rho*w * ( 1 + 3 * (cx*momentum_x + cy*momentum_y) + 9 * (cx*momentum_x + cy*momentum_y)**2 / 2 - 3 * (momentum_x**2 + momentum_y**2)/2 )
             V_eq[:,:,i] = rho*w * ( 1 + (3 * (cx*momentum_x + cy*momentum_y)) + (4.5 * (cx*momentum_x + cy*momentum_y)**2) - (1.5 * (momentum_x**2 + momentum_y**2)) )
 
         V = V -(V-V_eq)/tau
@@ -126,14 +122,14 @@ def main():
             curl_normalized = curl - curl_mean
             curl_normalized = curl - np.mean(curl_normalized)
             print(np.mean(curl_normalized))
-            plt.imshow(np.sqrt(momentum_x**2 + momentum_y**2))
             print(np.mean(np.sqrt(momentum_x**2 + momentum_y**2)))
             #plt.imshow(curl_normalized, cmap="bwr", interpolation='nearest')
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
+            velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
+            img = plt.imshow(velocity_field, cmap='viridis')
+            colorbar = plt.colorbar(img, label='velocity')
             plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=2, arrowsize=2, arrowstyle='->', color='white')
             plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
-            #plt.savefig("res/res_"+str(time//step)+".png")
-            #plt.savefig("res/0res_airless"+str(time//step)+".png")
 
 
             plt.savefig("res/res_stream"+str(time//step)+".png")
