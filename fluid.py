@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from matplotlib.colors import Normalize
+from scipy.ndimage import gaussian_filter
 import copy
 import sys
 
@@ -8,18 +10,13 @@ def dist(x1,y1,x2,y2):
     return(np.sqrt((x2-x1)**2 + (y2-y1)**2))
 
 
-def concentration(particules_x_coord, particules_y_coord, particule_n):
-    psi = np.zeros(Ny,Nx)
+def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
+    psi = np.zeros((Ny,Nx))
     maxi = 0
-    for j in range(Ny):
-        for i in range(Nx):
-            for k in range(particule_n):
-                if particule_y_coord[k] == j:
-                    if particule_x_coord[k] == i:
-                        psi[j][i] += 1
-                if psi[j][i] > maxi:
-                    maxi = psi[j][i]
-    return(psi/maxi)
+    for k in range(particule_n):
+        psi[particules_y_coord[k], particules_x_coord[k]] += 1
+    maxi = max( [max(psi[j,:]) for j in range(Ny)] )
+    return(psi, psi/maxi, maxi)
 
 def main():
     Nx = 799
@@ -29,7 +26,6 @@ def main():
 
     write_data = False
     calced_data = False
-
     if len(sys.argv) == 2:
         print(sys.argv[1])
         if sys.argv[1]=="-w":
@@ -43,9 +39,10 @@ def main():
     print("writing data at time 1000= ", write_data)
     print("using previously calculated data = ",calced_data)
 
+    norm = Normalize(vmin=0, vmax=1)
 
-    particule_n = 50
-    particules_x = 26 + 10*np.random.randn(particule_n)
+    particule_n = 50000
+    particules_x = 30 + 9*np.random.randn(particule_n)
     particules_x_coord = [int(particules_x[i]) for i in range(particule_n)]
     particules_y = 240*np.ones(particule_n) + 60*np.random.randn(particule_n)
     particules_y_coord = [int(particules_y[i]) for i in range(particule_n)]
@@ -56,7 +53,9 @@ def main():
     X, Y = np.meshgrid(x, y)
 
     my_cmap = copy.copy(plt.cm.get_cmap('gray')) # get a copy of the gray color map
+    my_cmap_red = copy.copy(plt.cm.get_cmap('OrRd')) # get a copy of the gray color map
     my_cmap.set_bad(alpha=0) # set how the colormap handles 'bad' values
+    my_cmap_red.set_bad(alpha=0) # set how the colormap handles 'bad' values
 
     # vitesses
     Nl = 9 #nombre de vitesses discretes
@@ -113,8 +112,13 @@ def main():
     momentum_y = np.sum(V*cys, 2) / rho
 
     velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-    img = plt.imshow(velocity_field, cmap='rainbow')
+    psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=2)
+    alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1], sigma=2)
+    img_ = plt.imshow(psi_concentration, cmap=my_cmap_red, alpha=1)
+    #img = plt.imshow(velocity_field, cmap='rainbow')
+    img = plt.imshow(velocity_field, cmap='Blues')
     colorbar = plt.colorbar(img, label='velocity')
+    colorbar_ = plt.colorbar(img_, label='concentration')
 
     for time in range(Nt):
 
@@ -172,11 +176,21 @@ def main():
 
         if time>200:
             plt.title("streaming")
-            for k in range(len(particules_x)):
+            k_list = []
+            for k in range(particule_n):
                 particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
                 particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
-                particules_x_coord[k] = int(particules_x[k])
-                particules_y_coord[k] = int(particules_y[k])
+                if int(particules_x[k]) >= (Nx-4) or int(particules_x[k]) < 4 or int(particules_y[k]) >= (Ny-4) or int(particules_y[k]) < 4:
+                    k_list.append(k)
+                else:
+                    particules_x_coord[k] = int(particules_x[k])
+                    particules_y_coord[k] = int(particules_y[k])
+            if k_list != []:
+                np.delete(particules_x, k_list)
+                np.delete(particules_x_coord, k_list)
+                np.delete(particules_y, k_list)
+                np.delete(particules_y_coord, k_list)
+                particule_n -= len(k_list)
 
 
 
@@ -204,15 +218,28 @@ def main():
             #plt.imshow(curl_normalized, cmap="bwr", interpolation='nearest')
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
             velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-            img = plt.imshow(velocity_field, cmap='rainbow')
-            img = plt.imshow(concentration(particules_x_coord,particules_y_coord,partiucle_n), cmap='Reds')
+            #img = plt.imshow(velocity_field, cmap='rainbow')
+            img = plt.imshow(velocity_field, cmap='Blues')
+            plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=1.5, arrowsize=2, arrowstyle='->', color='white')
+            psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=2)
+            alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1], sigma=2)
+            #masked_concentration = np.ma.masked_less(psi_concentration , 0.05)
+            #alpha = norm(psi_concentration)
+            img_ = plt.imshow(psi_concentration, cmap=my_cmap_red, alpha=1)
+            img_.set_alpha(alpha)
             colorbar.update_normal(img)
-            plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=2, arrowsize=2, arrowstyle='->', color='white')
+            colorbar_.update_normal(img_)
             plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
-            plt.scatter(particules_x, particules_y, color='black', marker='x', s=200)
+            #plt.scatter(particules_x, particules_y, color='black', marker='x', s=200)
 
 
-            plt.savefig("res/res_stream"+str(time//step)+".png")
+            if len(str(time//step)) == 1:
+                number = "00"+str(time//step)
+            if len(str(time//step)) == 2:
+                number = "0"+str(time//step)
+            if len(str(time//step)) == 3:
+                number = str(time//step)
+            plt.savefig("res/res_stream"+number+".png")
             plt.pause(0.01)
             plt.cla()
 
