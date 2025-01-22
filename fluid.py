@@ -2,9 +2,24 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import copy
+import sys
 
 def dist(x1,y1,x2,y2):
     return(np.sqrt((x2-x1)**2 + (y2-y1)**2))
+
+
+def concentration(particules_x_coord, particules_y_coord, particule_n):
+    psi = np.zeros(Ny,Nx)
+    maxi = 0
+    for j in range(Ny):
+        for i in range(Nx):
+            for k in range(particule_n):
+                if particule_y_coord[k] == j:
+                    if particule_x_coord[k] == i:
+                        psi[j][i] += 1
+                if psi[j][i] > maxi:
+                    maxi = psi[j][i]
+    return(psi/maxi)
 
 def main():
     Nx = 799
@@ -12,10 +27,27 @@ def main():
     Nt = 40000
     tau = 1
 
-    particule_n = 30
-    particules_x = 22 + 10*np.random.randn(particule_n)
+    write_data = False
+    calced_data = False
+
+    if len(sys.argv) == 2:
+        print(sys.argv[1])
+        if sys.argv[1]=="-w":
+            write_data = True
+        if sys.argv[1]=="-c":
+            calced_data = True
+        if sys.argv[1]=="-cw" or sys.argv[1]=="-wc":
+            write_data = True
+            calced_data = True
+
+    print("writing data at time 1000= ", write_data)
+    print("using previously calculated data = ",calced_data)
+
+
+    particule_n = 50
+    particules_x = 26 + 10*np.random.randn(particule_n)
     particules_x_coord = [int(particules_x[i]) for i in range(particule_n)]
-    particules_y = 250*np.ones(particule_n) + 40*np.random.randn(particule_n)
+    particules_y = 240*np.ones(particule_n) + 60*np.random.randn(particule_n)
     particules_y_coord = [int(particules_y[i]) for i in range(particule_n)]
     mass = 0.2
 
@@ -38,9 +70,18 @@ def main():
 
     # conditions initiales
     V = np.ones((Ny,Nx,Nl)) + 0.03*np.random.randn(Ny,Nx,Nl)
+    V[:,:,3] = 3
+    if calced_data:
+        with open("data/steady.dat",'r') as f:
+            V_read = f.readlines()
+            for j in range(Ny):
+                for i in range(Nx):
+                    V_l = V_read[j*Nx + i].split("/")
+                    V[j][i] = [float(V_l[l]) for l in range(Nl)]
+
+    V = V + 0.0001*np.random.randn(Ny,Nx,Nl)
 
     #on assigne à celle vers la droite (3eme noeud)
-    V[:,:,3] = 3
 
     obstacle = np.full((Ny,Nx), False) # False : libre, True : obstacle
     #center = (Nx//4, Ny//2)
@@ -119,8 +160,17 @@ def main():
         V = V -(V-V_eq)/tau
 
         #plot
+        if time==1000:
+            if write_data:
+                print("-w")
+                with open("data/steady.dat", 'w+') as f:
+                    for j in range(Ny):
+                        for i in range(Nx):
+                            for l in range(Nl):
+                                f.write(str(V[j][i][l]) + "/")
+                            f.write("\n")
 
-        if time>1000:
+        if time>200:
             plt.title("streaming")
             for k in range(len(particules_x)):
                 particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
@@ -155,6 +205,7 @@ def main():
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
             velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
             img = plt.imshow(velocity_field, cmap='rainbow')
+            img = plt.imshow(concentration(particules_x_coord,particules_y_coord,partiucle_n), cmap='Reds')
             colorbar.update_normal(img)
             plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=2, arrowsize=2, arrowstyle='->', color='white')
             plt.imshow(obstacle_shape, interpolation='nearest', cmap=my_cmap)
