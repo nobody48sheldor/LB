@@ -14,18 +14,22 @@ def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
     psi = np.zeros((Ny,Nx))
     maxi = 0
     for k in range(particule_n):
-        psi[particules_y_coord[k], particules_x_coord[k]] += 1
+        psi[particules_y_coord[k]][ particules_x_coord[k]] += 1
     maxi = max( [max(psi[j,:]) for j in range(Ny)] )
     return(psi, psi/maxi, maxi)
 
 def main():
     Nx = 799
     Ny = 499
-    Nt = 40000
+    Nt = 1000
     tau = 1
 
     write_data = False
     calced_data = False
+    brownian = True
+
+    diffusion = 0.15
+
     if len(sys.argv) == 2:
         print(sys.argv[1])
         if sys.argv[1]=="-w":
@@ -41,10 +45,10 @@ def main():
 
     norm = Normalize(vmin=0, vmax=1)
 
-    particule_n = 50000
+    particule_n = 200000
     particules_x = 30 + 9*np.random.randn(particule_n)
     particules_x_coord = [int(particules_x[i]) for i in range(particule_n)]
-    particules_y = 240*np.ones(particule_n) + 60*np.random.randn(particule_n)
+    particules_y = 240*np.ones(particule_n) + 50*np.random.randn(particule_n)
     particules_y_coord = [int(particules_y[i]) for i in range(particule_n)]
     mass = 0.2
 
@@ -53,9 +57,10 @@ def main():
     X, Y = np.meshgrid(x, y)
 
     my_cmap = copy.copy(plt.cm.get_cmap('gray')) # get a copy of the gray color map
-    my_cmap_red = copy.copy(plt.cm.get_cmap('OrRd')) # get a copy of the gray color map
+    #my_cmap_red = copy.copy(plt.cm.get_cmap('OrRd'))
+    my_cmap_red = copy.copy(plt.cm.get_cmap('OrRd'))
     my_cmap.set_bad(alpha=0) # set how the colormap handles 'bad' values
-    my_cmap_red.set_bad(alpha=0) # set how the colormap handles 'bad' values
+    my_cmap_red.set_bad(alpha=0)
 
     # vitesses
     Nl = 9 #nombre de vitesses discretes
@@ -112,11 +117,11 @@ def main():
     momentum_y = np.sum(V*cys, 2) / rho
 
     velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
-    psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=2)
-    alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1], sigma=2)
-    img_ = plt.imshow(psi_concentration, cmap=my_cmap_red, alpha=1)
-    #img = plt.imshow(velocity_field, cmap='rainbow')
-    img = plt.imshow(velocity_field, cmap='Blues')
+    psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=3)
+    alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1], sigma=3)
+    img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+        #img = plt.imshow(velocity_field, cmap='rainbow')
+    img = plt.imshow(velocity_field, cmap='rainbow', alpha=1)
     colorbar = plt.colorbar(img, label='velocity')
     colorbar_ = plt.colorbar(img_, label='concentration')
 
@@ -177,9 +182,13 @@ def main():
         if time>200:
             plt.title("streaming")
             k_list = []
-            for k in range(particule_n):
-                particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
-                particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
+            for k in range(len(particules_x)):
+                if not(brownian):
+                    particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
+                    particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass)
+                if brownian:
+                    particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass) + diffusion * np.random.uniform(-1, 1)/mass
+                    particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass) + diffusion * np.random.uniform(-1, 1)/mass
                 if int(particules_x[k]) >= (Nx-4) or int(particules_x[k]) < 4 or int(particules_y[k]) >= (Ny-4) or int(particules_y[k]) < 4:
                     k_list.append(k)
                 else:
@@ -190,7 +199,6 @@ def main():
                 np.delete(particules_x_coord, k_list)
                 np.delete(particules_y, k_list)
                 np.delete(particules_y_coord, k_list)
-                particule_n -= len(k_list)
 
 
 
@@ -219,13 +227,14 @@ def main():
             #plt.imshow(curl_normalized , cmap="bwr", interpolation='nearest')
             velocity_field = np.sqrt(momentum_x**2 + momentum_y**2)
             #img = plt.imshow(velocity_field, cmap='rainbow')
-            img = plt.imshow(velocity_field, cmap='Blues')
-            plt.streamplot(X, Y, momentum_x, momentum_y, density=1, linewidth=1.5, arrowsize=2, arrowstyle='->', color='white')
-            psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=2)
-            alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1], sigma=2)
+            img = plt.imshow(velocity_field, cmap='rainbow', alpha=0.2)
+            plt.streamplot(X, Y, momentum_x, momentum_y, density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
+            psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=3)
+            alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1]**0.25, sigma=3)
             #masked_concentration = np.ma.masked_less(psi_concentration , 0.05)
             #alpha = norm(psi_concentration)
-            img_ = plt.imshow(psi_concentration, cmap=my_cmap_red, alpha=1)
+            img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+
             img_.set_alpha(alpha)
             colorbar.update_normal(img)
             colorbar_.update_normal(img_)
