@@ -1,0 +1,25 @@
+ffmpeg -framerate 8 -i res/res_stream%03d.png -c:v copy animation.mkv
+
+mpv animation.mkv
+
+read -p "Save animation ? [y/N]" resp
+
+case $resp in
+	"y")
+		read -p "change name : " name;
+		mv animation.mkv res/${name}.mkv
+		;;
+	"Y")
+		read -p "change name : " name
+		mv animation.mkv renders/${name}.mkv
+		;;
+	"n")
+		rm animation.mkv
+		;;
+	"N")
+		rm animation.mkv
+		;;
+	*)
+		rm animation.mkv
+		;;
+esac
