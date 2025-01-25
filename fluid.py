@@ -13,7 +13,7 @@ def dist(x1,y1,x2,y2):
 def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
     psi = np.zeros((Ny,Nx))
     maxi = 0
-    for k in range(particule_n):
+    for k in range(len(particules_x_coord)):
         psi[particules_y_coord[k]][ particules_x_coord[k]] += 1
     maxi = max( [max(psi[j,:]) for j in range(Ny)] )
     return(psi, psi/maxi, maxi)
@@ -21,14 +21,14 @@ def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
 def main():
     Nx = 799
     Ny = 499
-    Nt = 1000
+    Nt = 2000
     tau = 1
 
     write_data = False
     calced_data = False
     brownian = True
 
-    diffusion = 0.15
+    diffusion = 0.1
 
     if len(sys.argv) == 2:
         print(sys.argv[1])
@@ -45,11 +45,14 @@ def main():
 
     norm = Normalize(vmin=0, vmax=1)
 
-    particule_n = 200000
-    particules_x = 30 + 9*np.random.randn(particule_n)
+    particule_n = 20000
+    particules_x = 40 + 10*np.random.randn(particule_n)
     particules_x_coord = [int(particules_x[i]) for i in range(particule_n)]
     particules_y = 240*np.ones(particule_n) + 50*np.random.randn(particule_n)
     particules_y_coord = [int(particules_y[i]) for i in range(particule_n)]
+
+    particules_x = list(particules_x)
+    particules_y = list(particules_y)
     mass = 0.2
 
     x = np.linspace(0, Nx-1, Nx)
@@ -180,7 +183,6 @@ def main():
                             f.write("\n")
 
         if time>200:
-            plt.title("streaming")
             k_list = []
             for k in range(len(particules_x)):
                 if not(brownian):
@@ -189,16 +191,23 @@ def main():
                 if brownian:
                     particules_x[k] += momentum_x[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass) + diffusion * np.random.uniform(-1, 1)/mass
                     particules_y[k] += momentum_y[ particules_y_coord[k] ][ particules_x_coord[k] ] * (tau/mass) + diffusion * np.random.uniform(-1, 1)/mass
-                if int(particules_x[k]) >= (Nx-4) or int(particules_x[k]) < 4 or int(particules_y[k]) >= (Ny-4) or int(particules_y[k]) < 4:
+
+            for k in range(len(particules_x)):
+                if (particules_x[k] < 5) or (particules_x[k] >= (Nx-5)) or (particules_y[k] >= (Ny-5)) or (particules_y[k] < 5):
+                    #print(particules_x[k], particules_y[k])
                     k_list.append(k)
                 else:
                     particules_x_coord[k] = int(particules_x[k])
                     particules_y_coord[k] = int(particules_y[k])
+
+            #print(min(particules_x), max(particules_x))
+            #print(min(particules_y), max(particules_y))
             if k_list != []:
-                np.delete(particules_x, k_list)
-                np.delete(particules_x_coord, k_list)
-                np.delete(particules_y, k_list)
-                np.delete(particules_y_coord, k_list)
+                for k in reversed(k_list):
+                    particules_x.pop(k)
+                    particules_x_coord.pop(k)
+                    particules_y.pop(k)
+                    particules_y_coord.pop(k)
 
 
 
@@ -209,6 +218,7 @@ def main():
        
         step=20
         if time%step== 0:
+            plt.title("time : "+str(time) + " | particules : " + str(len(particules_x)), size=50)
             dfydx = momentum_x[2:, 1:-1] - momentum_x[:-2, 1:-1]
             dfxdy = momentum_y[1:-1, 2:] - momentum_y[1:-1, :-2]
             curl = dfydx - dfxdy
@@ -230,7 +240,7 @@ def main():
             img = plt.imshow(velocity_field, cmap='rainbow', alpha=0.2)
             plt.streamplot(X, Y, momentum_x, momentum_y, density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=3)
-            alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1]**0.25, sigma=3)
+            alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1]**0.15, sigma=3)
             #masked_concentration = np.ma.masked_less(psi_concentration , 0.05)
             #alpha = norm(psi_concentration)
             img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
