@@ -1,0 +1,89 @@
+if [[ "$1" == "-0" ]]; then
+	read -p "remove previously computed results ? [y/N] " resp
+	case $resp in
+		"y")
+			rm res/*.png;;
+		"Y")
+			rm res/*.png;;
+		"n")
+			;;
+		"N")
+			;;
+		*)
+			;;
+	esac
+	echo "Flag -0 detected. Now running : python3 fluid.py";
+	python3 fluid.py;
+	./png_to_mkv
+elif [[ "$1" == "-c" ]]; then
+	read -p "remove previously computed results ? [y/N] " resp
+	case $resp in
+		"y")
+			rm res/*.png;;
+		"Y")
+			rm res/*.png;;
+		"n")
+			;;
+		"N")
+			;;
+		*)
+			;;
+	esac
+	echo "Flag -c detected. Now running : python3 fluid.py -c";
+	python3 fluid.py -c;
+	./png_to_mkv
+elif [[ "$1" == "-w" ]]; then
+	read -p "remove previously computed results ? [y/N] " resp
+	case $resp in
+		"y")
+			rm res/*.png;;
+		"Y")
+			rm res/*.png;;
+		"n")
+			;;
+		"N")
+			;;
+		*)
+			;;
+	esac
+	echo "Flag -w detected. Now running : python3 fluid.py -w";
+	python3 fluid.py -w;
+	./png_to_mkv
+elif [[ "$1" == "-cw" ]]; then
+	read -p "remove previously computed results ? [y/N] " resp
+	case $resp in
+		"y")
+			rm res/*.png;;
+		"Y")
+			rm res/*.png;;
+		"n")
+			;;
+		"N")
+			;;
+		*)
+			;;
+	esac
+	echo "Flag -cw detected. Now running : python3 fluid.py -cw";
+	python3 fluid.py -cw;
+	./png_to_mkv
+elif [[ "$1" == "-wc" ]]; then
+	read -p "remove previously computed results ? [y/N] " resp
+	case $resp in
+		"y")
+			rm res/*.png;;
+		"Y")
+			rm res/*.png;;
+		"n")
+			;;
+		"N")
+			;;
+		*)
+			;;
+	esac
+	echo "Flag -wc detected. Now running : python3 fluid.py -wc";
+	python3 fluid.py -wc;
+	./png_to_mkv
+else
+	echo "No or bad flag deteced, use '-c / -w / -cw / -wc / -0'"
+fi
+
