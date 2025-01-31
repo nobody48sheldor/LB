@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.colors import Normalize
-from scipy.ndimage import gaussian_filter
+from multiprocessing import Process
 import copy
 import sys
 
@@ -21,6 +21,9 @@ def main():
     tau = 1
     time_save = 3000
     time_stream = 3000
+    #particule_stream_active = True
+    particule_stream_active = False
+
     
     write_data = False
     calced_data = False
@@ -47,11 +50,11 @@ def main():
 
     norm = Normalize(vmin=0, vmax=1)
     
-    #particule_n = 20000
-    #particules_x = 40 + 10 * cp.random.randn(particule_n)
-    #particules_x_coord = cp.asarray([int(x) for x in particules_x.get()])
-    #particules_y = 240 * cp.ones(particule_n) + 50 * cp.random.randn(particule_n)
-    #particules_y_coord = cp.asarray([int(y) for y in particules_y.get()])
+    particule_n = 200000
+    particules_x = 40 + 10 * cp.random.randn(particule_n)
+    particules_x_coord = cp.asarray([int(x) for x in particules_x.get()])
+    particules_y = 240 * cp.ones(particule_n) + 50 * cp.random.randn(particule_n)
+    particules_y_coord = cp.asarray([int(y) for y in particules_y.get()])
     
     mass = 0.2
     
@@ -102,17 +105,20 @@ def main():
     momentum_y = cp.sum(V * cys, 2) / rho
     
     velocity_field = cp.sqrt(momentum_x**2 + momentum_y**2)
-    #psi_concentration = gaussian_filter(concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)[0].get(), sigma=3)
-    #alpha = gaussian_filter(concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)[1].get(), sigma=3)
+
+    if particule_stream_active:
+        psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
+        psi_concentration, alpha = psi_concentration.get(), alpha.get()
     
-    #img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+        img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+        colorbar_ = plt.colorbar(img_)
+        colorbar_.set_label('Concentration', fontsize=20)
+        colorbar_.ax.tick_params(labelsize=15)
+
     img = plt.imshow(velocity_field.get(), cmap='rainbow', alpha=1)
     colorbar = plt.colorbar(img)
     colorbar.set_label('Velocity', fontsize=20)
     colorbar.ax.tick_params(labelsize=15)
-    #colorbar_ = plt.colorbar(img_)
-    #colorbar_.set_label('Concentration', fontsize=20)
-    #colorbar_.ax.tick_params(labelsize=15)
 
     for time in range(Nt):
 
@@ -183,38 +189,33 @@ def main():
 
         # particules streaming
 
-        #if time > time_stream:
-        #    k_list = []
-        #    for k in range(len(particules_x)):
-        #        # Access momentum values from GPU (transfer scalar to CPU via .get())
-        #        mom_x = momentum_x[particules_y_coord[k], particules_x_coord[k]].get()
-        #        mom_y = momentum_y[particules_y_coord[k], particules_x_coord[k]].get()
-        #        if not brownian:
-        #            particules_x[k] += mom_x * (tau / mass)
-        #            particules_y[k] += mom_y * (tau / mass)
-        #        else:
-        #            # Brownian diffusion: add a uniform random term (converted to CPU scalar)
-        #            rand_x = cp.random.uniform(-1, 1).get()
-        #            rand_y = cp.random.uniform(-1, 1).get()
-        #            particules_x[k] += mom_x * (tau / mass) + diffusion * rand_x / mass
-        #            particules_y[k] += mom_y * (tau / mass) + diffusion * rand_y / mass
+        if (time > time_stream) and particule_stream_active:
+            out_of_bounds_mask = (particules_x < 2) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 2)
+            if not brownian:
+                particules_x += momentum_x[particules_y_coord, particules_x_coord] * (tau/mass)
+                particules_y += momentum_y[particules_y_coord, particules_x_coord] * (tau/mass)
+            else:
+                size = particules_x.size
+                rand_x = cp.random.uniform(-1,1,size=size)
+                rand_y = cp.random.uniform(-1,1,size=size)
+                particules_x = momentum_x[particules_y_coord, particules_x_coord]*(tau/mass) +( diffusion * rand_x / mass )
+                particules_y = momentum_y[particules_y_coord, particules_x_coord]*(tau/mass) +( diffusion * rand_y / mass )
 
-                # Remove particles that leave the domain boundaries
-       #         if (particules_x[k] < 2) or (particules_x[k] >= (Nx-2)) or \
-       #            (particules_y[k] < 2) or (particules_y[k] >= (Ny-2)):
-       #             k_list.append(k)
-       #         else:
-       #             particules_x_coord[k] = int(particules_x[k])
-       #             particules_y_coord[k] = int(particules_y[k])
-       #     if k_list:
-       #         for k in reversed(k_list):
-       #             particules_x.pop(k)
-       #             particules_x_coord.pop(k)
-       #             particules_y.pop(k)
-       #             particules_y_coord.pop(k)
+            in_bounds_mask = ~out_of_bounds_mask
+            particules_x_coord[in_bounds_mask] = cp.floor(particules_x[in_bounds_mask]).astype(int)
+            particules_y_coord[in_bounds_mask] = cp.floor(particules_y[in_bounds_mask]).astype(int)
 
+            # Remove particles that are out of bounds (use CuPy delete or boolean indexing)
+            k_list = cp.nonzero(out_of_bounds_mask)[0]
 
-        # Plot the vector field
+            if k_list.size > 0:
+                particules_x = cp.delete(particules_x, k_list)
+                particules_y = cp.delete(particules_y, k_list)
+                particules_x_coord = cp.delete(particules_x_coord, k_list)
+                particules_y_coord = cp.delete(particules_y_coord, k_list)
+    
+
+           # Plot the vector field
 
        
         step=20
@@ -244,13 +245,16 @@ def main():
             velocity_field = cp.sqrt(momentum_x**2 + momentum_y**2).get()
             img = plt.imshow(velocity_field, cmap='rainbow', alpha=0.2)
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
-            #psi_concentration = gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[0], sigma=3)
-            #alpha= gaussian_filter(concentration(particules_x_coord,particules_y_coord,particule_n, Ny, Nx)[1]**0.15, sigma=3)
-            #img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+            if particule_stream_active and time>time_stream :
+                psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
+                psi_concentration, alpha = psi_concentration.get(), alpha.get()
 
-            #img_.set_alpha(alpha)
-            #colorbar.update_normal(img)
-            #colorbar_.update_normal(img_)
+                img_ = plt.imshow(psi_concentration, cmap=my_cmap_red)
+
+                colorbar_.update_normal(img_)
+                img_.set_alpha(alpha)
+
+            colorbar.update_normal(img)
             plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
             #plt.scatter(particules_x, particules_y, color='black', marker='x', s=200)
 
