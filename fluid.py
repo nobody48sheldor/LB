@@ -6,10 +6,6 @@ from scipy.ndimage import gaussian_filter
 import copy
 import sys
 
-def dist(x1,y1,x2,y2):
-    return(np.sqrt((x2-x1)**2 + (y2-y1)**2))
-
-
 def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
     psi = np.zeros((Ny,Nx))
     maxi = 0
@@ -21,8 +17,10 @@ def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
 def main():
     Nx = 799
     Ny = 499
-    Nt = 4000
+    Nt = 6000
     tau = 1
+    time_save = 3000
+    time_stream = 3000
 
     write_data = False
     calced_data = False
@@ -35,10 +33,12 @@ def main():
         if sys.argv[1]=="-w":
             write_data = True
         if sys.argv[1]=="-c":
-            Nt = 1800
+            #Nt = 1800
+            time_stream = 200
             calced_data = True
         if sys.argv[1]=="-cw" or sys.argv[1]=="-wc":
-            Nt = 1800
+            #Nt = 2500
+            time_stream = 3000
             write_data = True
             calced_data = True
 
@@ -187,7 +187,7 @@ def main():
 
         # save computed velocities
 
-        if time==1000:
+        if time==time_save:
             if write_data:
                 print("-w")
                 with open("data/steady.dat", 'w+') as f:
@@ -200,7 +200,7 @@ def main():
 
         # particules streaming
 
-        if time>200:
+        if time>time_stream:
             k_list = []
             for k in range(len(particules_x)):
                 if not(brownian):
