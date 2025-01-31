@@ -12,8 +12,8 @@ if [[ "$1" == "-0" ]]; then
 		*)
 			;;
 	esac
-	echo "Flag -0 detected. Now running : python3 fluid.py";
-	python3 fluid.py;
+	echo "Flag -0 detected. Now running : python3 fluid-cuda.py";
+	python3 fluid-cuda.py;
 	./png_to_mkv
 elif [[ "$1" == "-c" ]]; then
 	read -p "remove previously computed results ? [y/N] " resp
@@ -29,8 +29,8 @@ elif [[ "$1" == "-c" ]]; then
 		*)
 			;;
 	esac
-	echo "Flag -c detected. Now running : python3 fluid.py -c";
-	python3 fluid.py -c;
+	echo "Flag -c detected. Now running : python3 fluid-cuda.py -c";
+	python3 fluid-cuda.py -c;
 	./png_to_mkv
 elif [[ "$1" == "-w" ]]; then
 	read -p "remove previously computed results ? [y/N] " resp
@@ -46,8 +46,8 @@ elif [[ "$1" == "-w" ]]; then
 		*)
 			;;
 	esac
-	echo "Flag -w detected. Now running : python3 fluid.py -w";
-	python3 fluid.py -w;
+	echo "Flag -w detected. Now running : python3 fluid-cuda.py -w";
+	python3 fluid-cuda.py -w;
 	./png_to_mkv
 elif [[ "$1" == "-cw" ]]; then
 	read -p "remove previously computed results ? [y/N] " resp
@@ -63,8 +63,8 @@ elif [[ "$1" == "-cw" ]]; then
 		*)
 			;;
 	esac
-	echo "Flag -cw detected. Now running : python3 fluid.py -cw";
-	python3 fluid.py -cw;
+	echo "Flag -cw detected. Now running : python3 fluid-cuda.py -cw";
+	python3 fluid-cuda.py -cw;
 	./png_to_mkv
 elif [[ "$1" == "-wc" ]]; then
 	read -p "remove previously computed results ? [y/N] " resp
@@ -80,8 +80,8 @@ elif [[ "$1" == "-wc" ]]; then
 		*)
 			;;
 	esac
-	echo "Flag -wc detected. Now running : python3 fluid.py -wc";
-	python3 fluid.py -wc;
+	echo "Flag -wc detected. Now running : python3 fluid-cuda.py -wc";
+	python3 fluid-cuda.py -wc;
 	./png_to_mkv
 else
 	echo "No or bad flag deteced, use '-c / -w / -cw / -wc / -0'"
