@@ -5,6 +5,10 @@
 
 > Currently being improved upon for my TIPE (5/2), will be released in June/July
 
+## demo
+
+![](animation.gif)
+
 ## quick-start
 
 ### Requirements
