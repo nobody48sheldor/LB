@@ -11,16 +11,16 @@
 
 ## quick-start
 
-### Requirements
+### --> Requirements
 
-#### CPU version (with numpy)
+#### ->CPU version (with numpy)
 
 Make sure to have  installed on your system :
 - `numpy`
 - `matplotlib`
 - `scipy`
 
-#### GPU version (with cupy) ~ Nvidia GPU only
+#### -> GPU version (with cupy) ~ Nvidia GPU only
 
 Make sure to have  installed on your system :
 - `CUDA`
@@ -29,22 +29,22 @@ Make sure to have  installed on your system :
 - `matplotlib`
 - `scipy`
 
-#### running on Linux
+#### -> running on Linux
 
-To run the CPU version, if you are on linux, you can `$ mkdir res && mkdir renders && chmod +x run-CPU && ./run-CPU` to start the simulation.
-To run the GPU version, if you are on linux, you can `$ mkdir res && mkdir renders && chmod +x run-GPU && ./run-GPU` to start the simulation.
+To run the CPU version, if you are on linux, you can `-$ mkdir res && mkdir renders && chmod +x run-CPU && ./run-CPU` to start the simulation.
+To run the GPU version, if you are on linux, you can `-$ mkdir res && mkdir renders && chmod +x run-GPU && ./run-GPU` to start the simulation.
 
-#### running on Windows and MacOS
+#### -> running on Windows and MacOS
 
-Create in the working dierctory a `res` and `renders` folders and then run `python3 fluid.py` for the CPU version, and run `python3 fluid-cuda.py`
+Create in the working dierctory a `res/` and a `renders/` folder and then run `python3 fluid.py` for the CPU version, and run `python3 fluid-cuda.py`
 
-#### Options
+#### -> Options
 
 In both cases, the `-w` flag will write the data at time `t=3000` so that it can be re-used afterward by running with the `-c` flag,  you can combine the two with `-cw` (the  flags can be applied to either `run-CPU` and `run-GPU` or the python scripts themselves)
 
-### further reading / watching
+### --> further reading / watching
 
 - Lattice Boltzmann Method (LBM or LB) : [wikipedia's page](https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods)
 - First code based on this code video : [Matias Ortiz on youtube](https://youtu.be/JFWqCQHg-Hs?si=KBw4YX2WtZV_-3Ng)
-- blog post that the video is inspired upon : [Philip Mocz blog post](https://medium.com/swlh/create-your-own-lattice-boltzmann-simulation-with-python-8759e8b53b1c)
+- blog post that the video is inspired from : [Philip Mocz blog post](https://medium.com/swlh/create-your-own-lattice-boltzmann-simulation-with-python-8759e8b53b1c)
 
