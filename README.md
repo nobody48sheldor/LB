@@ -13,7 +13,7 @@
 
 ### --> Requirements
 
-#### ->CPU version (with numpy)
+#### -> CPU version (with numpy)
 
 Make sure to have  installed on your system :
 - `numpy`
