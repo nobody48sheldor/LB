@@ -15,14 +15,14 @@
 
 #### -> CPU version (with numpy)
 
-Make sure to have  installed on your system :
+Run `-$ pip3 install -r requirement-CPU.txt`, or make sure to have installed on your system :
 - `numpy`
 - `matplotlib`
 - `scipy`
 
 #### -> GPU version (with cupy) ~ Nvidia GPU only
 
-Make sure to have  installed on your system :
+Run `-$ pip3 install -r requirement-GPU.txt`, or make sure to have installed on your system :
 - `CUDA`
 - `cupy`
 - `numpy`
