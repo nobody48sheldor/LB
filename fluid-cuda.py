@@ -3,16 +3,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.colors import Normalize
+from scipy.ndimage import gaussian_filter
 #from multiprocessing import Process
 import copy
 import sys
 
 def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
-    psi = cp.zeros((Ny, Nx))
+    psi = np.zeros((Ny,Nx))
+    maxi = 0
+    particules_x_coord_CPU, particules_y_coord_CPU = particules_x_coord.get(), particules_y_coord.get()
     for k in range(particules_x_coord.size):
-        psi[particules_y_coord[k], particules_x_coord[k]] += 1
-    maxi = max( [max(psi[j,:].get()) for j in range(Ny)] )
-    return psi, psi / maxi, maxi
+        psi[particules_y_coord_CPU[k]][ particules_x_coord_CPU[k]] += 1
+    maxi = max( [max(psi[j,:]) for j in range(Ny)] )
+    return(psi, psi/maxi, maxi)
 
 def main():
     Nx = 799
@@ -21,8 +24,8 @@ def main():
     tau = 1
     time_save = 3000
     time_stream = 3000
-    #particule_stream_active = True
-    particule_stream_active = False
+    particule_stream_active = True
+   # particule_stream_active = False
 
     
     write_data = False
@@ -32,7 +35,7 @@ def main():
     diffusion = 0.1
 
     if len(sys.argv) == 2:
-        print(sys.argv[1])
+        #print(sys.argv[1])
         if sys.argv[1]=="-w":
             write_data = True
         if sys.argv[1]=="-c":
@@ -108,10 +111,11 @@ def main():
 
     if particule_stream_active:
         psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
+        psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
         print("maxi_init = ", maxi)
     
-        img_ = plt.imshow(psi_concentration.get(), cmap=my_cmap_red)
-        #img_.set_alpha(alpha.get())
+        img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
+        img_.set_alpha(alpha)
         colorbar_ = plt.colorbar(img_)
         colorbar_.set_label('Concentration', fontsize=20)
         colorbar_.ax.tick_params(labelsize=15)
@@ -178,7 +182,7 @@ def main():
 
         if time==time_save:
             if write_data:
-                print("-w")
+                #print("-w")
                 V_cpu = V.get()
                 with open("data/steady.dat", 'w+') as f:
                     for j in range(Ny):
@@ -198,8 +202,8 @@ def main():
                 size = particules_x.size
                 rand_x = cp.random.uniform(-1,1,size=size)
                 rand_y = cp.random.uniform(-1,1,size=size)
-                particules_x = momentum_x[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_x / mass )
-                particules_y = momentum_y[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_y / mass )
+                particules_x += momentum_x[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_x / mass )
+                particules_y += momentum_y[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_y / mass )
 
             out_of_bounds_mask = (particules_x < 2) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 2)
             in_bounds_mask = ~out_of_bounds_mask
@@ -208,6 +212,7 @@ def main():
 
             # Remove particles that are out of bounds (use CuPy delete or boolean indexing)
 
+            k_list = cp.where(out_of_bounds_mask)[0]
             if k_list.size > 0:
                 particules_x = cp.delete(particules_x, k_list)
                 particules_y = cp.delete(particules_y, k_list)
@@ -246,12 +251,13 @@ def main():
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
+                psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
                 print("maxi_after = ",maxi)
 
-                img_ = plt.imshow(psi_concentration.get(), cmap=my_cmap_red)
+                img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
 
                 colorbar_.update_normal(img_)
-                #img_.set_alpha(alpha.get())
+                img_.set_alpha(alpha)
 
             colorbar.update_normal(img)
             plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
