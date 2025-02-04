@@ -2,7 +2,6 @@ import cupy as cp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-from matplotlib.colors import Normalize
 from scipy.ndimage import gaussian_filter
 #from multiprocessing import Process
 import copy
@@ -25,7 +24,7 @@ def main():
     time_save = 3000
     time_stream = 3000
     particule_stream_active = True
-   # particule_stream_active = False
+    flux = True
 
     
     write_data = False
@@ -51,12 +50,14 @@ def main():
     print("writing data at time 1000= ", write_data)
     print("using previously calculated data = ",calced_data)
 
-    norm = Normalize(vmin=0, vmax=1)
-    
-    particule_n = 20000
-    particules_x = 40 + 10 * cp.random.randn(particule_n)
+    x_offset = 10
+    y_offset = 250
+    x_range = 10
+    y_range = 30
+    particule_n = 500
+    particules_x = x_offset + x_range * cp.random.randn(particule_n)
     particules_x_coord = cp.asarray([int(x) for x in particules_x.get()])
-    particules_y = 240 * cp.ones(particule_n) + 50 * cp.random.randn(particule_n)
+    particules_y = y_offset + y_range * cp.random.randn(particule_n)
     particules_y_coord = cp.asarray([int(y) for y in particules_y.get()])
     
     mass = 0.2
@@ -205,12 +206,30 @@ def main():
                 particules_x += momentum_x[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_x / mass )
                 particules_y += momentum_y[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_y / mass )
 
-            out_of_bounds_mask = (particules_x < 2) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 2)
-            in_bounds_mask = ~out_of_bounds_mask
-            particules_x_coord[in_bounds_mask] = cp.floor(particules_x[in_bounds_mask]).astype(int)
-            particules_y_coord[in_bounds_mask] = cp.floor(particules_y[in_bounds_mask]).astype(int)
 
             # Remove particles that are out of bounds (use CuPy delete or boolean indexing)
+
+            if flux:
+                print("y_low = ", (y_offset - y_range), "y_high = ", (y_offset + y_range))
+                print("x_low = ", (x_offset - x_range), "x_high = ", (x_offset + x_range))
+                momentum_x_avg = cp.mean( momentum_x[ (y_offset - y_range) : (y_offset + y_range), (x_offset - x_range) : (x_offset + x_range) ] ).get()
+                distance = (momentum_x_avg / mass ) * tau
+                number_add = int( particule_n * ( distance / x_range) )
+                print("mom_x_avg = ", momentum_x_avg, "distance = ", distance, "number_add = ", number_add)
+                particules_x_add = ( x_offset - (distance/2) ) + distance * cp.random.randn(number_add)
+                particules_y_add = y_offset + y_range * cp.random.randn(number_add)
+                particules_x = cp.concatenate( (particules_x, particules_x_add) )
+                particules_y = cp.concatenate( (particules_y, particules_y_add) )
+                particules_x_coord = cp.concatenate( (particules_x_coord, particules_x_add) )
+                particules_y_coord = cp.concatenate( (particules_y_coord, particules_y_add) )
+
+
+            out_of_bounds_mask = (particules_x < 2) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 2)
+            in_bounds_mask = ~out_of_bounds_mask
+            particules_x_coord = cp.floor(particules_x).astype(int)
+            particules_y_coord = cp.floor(particules_y).astype(int)
+            #particules_x_coord[in_bounds_mask] = cp.floor(particules_x[in_bounds_mask]).astype(int)
+            #particules_y_coord[in_bounds_mask] = cp.floor(particules_y[in_bounds_mask]).astype(int)
 
             k_list = cp.where(out_of_bounds_mask)[0]
             if k_list.size > 0:
@@ -218,7 +237,8 @@ def main():
                 particules_y = cp.delete(particules_y, k_list)
                 particules_x_coord = cp.delete(particules_x_coord, k_list)
                 particules_y_coord = cp.delete(particules_y_coord, k_list)
-    
+
+   
 
            # Plot the vector field
 
