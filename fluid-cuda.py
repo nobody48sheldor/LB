@@ -17,9 +17,12 @@ def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
     return(psi, psi/maxi, maxi)
 
 def main():
-    Nx = 799
-    Ny = 499
-    Nt = 6000
+    img = mpimg.imread('obstacle.png')
+    Nx = len(img[0])
+    Ny = len(img)
+    #print(Nx, Ny)
+    #print()
+    Nt = 14000
     tau = 1
     time_save = 3000
     time_stream = 3000
@@ -31,7 +34,7 @@ def main():
     calced_data = False
     brownian = True
     
-    diffusion = 0.1
+    diffusion = 0.2
 
     if len(sys.argv) == 2:
         #print(sys.argv[1])
@@ -47,14 +50,14 @@ def main():
             write_data = True
             calced_data = True
 
-    print("writing data at time 1000= ", write_data)
-    print("using previously calculated data = ",calced_data)
+    #print("writing data at time 1000= ", write_data)
+    #print("using previously calculated data = ",calced_data)
 
     x_offset = 10
     y_offset = 250
     x_range = 10
     y_range = 30
-    particule_n = 500
+    particule_n = 1500
     particules_x = x_offset + x_range * cp.random.randn(particule_n)
     particules_x_coord = cp.asarray([int(x) for x in particules_x.get()])
     particules_y = y_offset + y_range * cp.random.randn(particule_n)
@@ -93,7 +96,6 @@ def main():
     V += 0.0001 * cp.random.randn(Ny, Nx, Nl)
     
     obstacle = cp.full((Ny, Nx), False)
-    img = mpimg.imread('obstacle.png')
     for y in range(Ny):
         for x in range(Nx):
             if img[y, x, 3] != 0:
@@ -104,16 +106,19 @@ def main():
     plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
     plt.show()
     
+    fig = plt.figure(figsize=(38.40,21.60))
+
     rho = cp.sum(V, 2)
     momentum_x = cp.sum(V * cxs, 2) / rho
     momentum_y = cp.sum(V * cys, 2) / rho
     
     velocity_field = cp.sqrt(momentum_x**2 + momentum_y**2)
 
+
     if particule_stream_active:
         psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
         psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
-        print("maxi_init = ", maxi)
+        #print("maxi_init = ", maxi)
     
         img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
         img_.set_alpha(alpha)
@@ -127,6 +132,7 @@ def main():
     colorbar.ax.tick_params(labelsize=15)
 
     for time in range(Nt):
+        prev_len = 0
 
         #boundaries conditions
 
@@ -210,12 +216,12 @@ def main():
             # Remove particles that are out of bounds (use CuPy delete or boolean indexing)
 
             if flux:
-                print("y_low = ", (y_offset - y_range), "y_high = ", (y_offset + y_range))
-                print("x_low = ", (x_offset - x_range), "x_high = ", (x_offset + x_range))
+                #print("y_low = ", (y_offset - y_range), "y_high = ", (y_offset + y_range))
+                #print("x_low = ", (x_offset - x_range), "x_high = ", (x_offset + x_range))
                 momentum_x_avg = cp.mean( momentum_x[ (y_offset - y_range) : (y_offset + y_range), (x_offset - x_range) : (x_offset + x_range) ] ).get()
                 distance = (momentum_x_avg / mass ) * tau
                 number_add = int( particule_n * ( distance / x_range) )
-                print("mom_x_avg = ", momentum_x_avg, "distance = ", distance, "number_add = ", number_add)
+                #print("mom_x_avg = ", momentum_x_avg, "distance = ", distance, "number_add = ", number_add)
                 particules_x_add = ( x_offset - (distance/2) ) + distance * cp.random.randn(number_add)
                 particules_y_add = y_offset + y_range * cp.random.randn(number_add)
                 particules_x = cp.concatenate( (particules_x, particules_x_add) )
@@ -271,13 +277,14 @@ def main():
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
-                psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
-                print("maxi_after = ",maxi)
+                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5)**0.5, gaussian_filter(alpha, sigma=5)**0.5
+
+                #print("maxi_after = ",maxi)
 
                 img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
 
                 colorbar_.update_normal(img_)
-                img_.set_alpha(alpha)
+                img_.set_alpha(alpha_gaussian)
 
             colorbar.update_normal(img)
             plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
@@ -290,8 +297,13 @@ def main():
                 number = "0"+str(time//step)
             if len(str(time//step)) == 3:
                 number = str(time//step)
-            plt.savefig("res/res_stream"+number+".png")
-            plt.pause(0.001)
+            plt.savefig("res/res_stream"+number+".png", dpi=100)
+            # print(number, " / ", Nt)
+            percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ]"
+            print(" " * prev_len, end="\r")  # Clear previous output
+            print(percent , end="\r", flush=True)  # Print new output
+            prev_len = len(percent)
+            #plt.pause(0.001)
             plt.cla()
 
 
