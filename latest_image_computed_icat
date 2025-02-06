@@ -1,0 +1,10 @@
+get_latest_file() {
+    find "$1" -type f -name "res_stream*.png" 2>/dev/null | sort -V | tail -n 2 | head -n 1
+}
+
+while true;
+do
+	clear;
+	kitten icat $(get_latest_file "res");
+	sleep 10;
+done;

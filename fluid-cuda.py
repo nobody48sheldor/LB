@@ -277,7 +277,7 @@ def main():
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
-                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5)**0.5, gaussian_filter(alpha, sigma=5)**0.5
+                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5)**0.7, gaussian_filter(alpha, sigma=5)**0.7
 
                 #print("maxi_after = ",maxi)
 
