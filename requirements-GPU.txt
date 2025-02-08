@@ -1,5 +1,4 @@
 numpy
 matplotlib
-copy
-sys
+scipy
 cupy
