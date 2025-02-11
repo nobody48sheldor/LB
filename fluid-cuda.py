@@ -23,18 +23,26 @@ def main():
     #print(Nx, Ny)
     #print()
     Nt = 14000
-    tau = 1
+    tau = 0.65
     time_save = 3000
     time_stream = 3000
     particule_stream_active = True
     flux = True
-
+    v_init = 3/9
+    mass = 0.2
     
     write_data = False
     calced_data = False
     brownian = True
-    
-    diffusion = 0.2
+
+    L = 5
+    l = L*Ny/Nx
+    steps_to_reach = 3000*20
+    delta_t = (mass*L)/(v_init*steps_to_reach)
+    D = 2.3*(10**(-9))
+    diffusion = np.sqrt(6*D/delta_t)
+    print("d = ", diffusion)
+    #diffusion = 0.2
 
     if len(sys.argv) == 2:
         #print(sys.argv[1])
@@ -63,7 +71,7 @@ def main():
     particules_y = y_offset + y_range * cp.random.randn(particule_n)
     particules_y_coord = cp.asarray([int(y) for y in particules_y.get()])
     
-    mass = 0.2
+    delta_x = mass**(1/3)
     
     x = np.linspace(0, Nx-1, Nx)
     y = np.linspace(0, Ny-1, Ny)
@@ -83,7 +91,7 @@ def main():
     
 
     V = cp.ones((Ny, Nx, Nl)) + 0.03 * cp.random.randn(Ny, Nx, Nl)
-    V[:, :, 3] = 3
+    V[:, :, 3] = v_init*Nl
 
     if calced_data:
         with open("data/steady.dat", 'r') as f:
@@ -112,7 +120,7 @@ def main():
     momentum_x = cp.sum(V * cxs, 2) / rho
     momentum_y = cp.sum(V * cys, 2) / rho
     
-    velocity_field = cp.sqrt(momentum_x**2 + momentum_y**2)
+    momentum_field = cp.sqrt(momentum_x**2 + momentum_y**2)
 
 
     if particule_stream_active:
@@ -126,9 +134,9 @@ def main():
         colorbar_.set_label('Concentration', fontsize=20)
         colorbar_.ax.tick_params(labelsize=15)
 
-    img = plt.imshow(velocity_field.get(), cmap='rainbow', alpha=1)
+    img = plt.imshow(momentum_field.get(), cmap='rainbow', alpha=1)
     colorbar = plt.colorbar(img)
-    colorbar.set_label('Velocity', fontsize=20)
+    colorbar.set_label('Momentum', fontsize=20)
     colorbar.ax.tick_params(labelsize=15)
 
     for time in range(Nt):
@@ -272,8 +280,8 @@ def main():
             #plt.imshow(curl_normalized, cmap="bwr", interpolation='nearest')
 
 
-            velocity_field = cp.sqrt(momentum_x**2 + momentum_y**2).get()
-            img = plt.imshow(velocity_field, cmap='rainbow', alpha=0.2)
+            momentum_field = cp.sqrt(momentum_x**2 + momentum_y**2).get()
+            img = plt.imshow(momentum_field, cmap='rainbow', alpha=0.2)
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
