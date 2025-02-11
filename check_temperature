@@ -1,0 +1,6 @@
+while true; do
+	clear;
+	echo $(sensors k10temp-pci-00c3 | grep "Tctl:");
+	echo $(sensors amdgpu-pci-0400 | grep "edge:");
+	sleep 5;
+done;
