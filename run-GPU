@@ -1,5 +1,7 @@
+#!/bin/bash
+
 if [[ "$1" == "-0" ]]; then
-	read -p "remove previously computed results ? [y/N] " resp
+	read -p "remove previously computed results renders ? [y/N] " resp
 	case $resp in
 		"y")
 			rm res/*.png;;
@@ -15,8 +17,9 @@ if [[ "$1" == "-0" ]]; then
 	echo "Flag -0 detected. Now running : python3 fluid-cuda.py";
 	python3 fluid-cuda.py;
 	./png_to_mkv
+
 elif [[ "$1" == "-c" ]]; then
-	read -p "remove previously computed results ? [y/N] " resp
+	read -p "remove previously computed results renders ? [y/N] " resp
 	case $resp in
 		"y")
 			rm res/*.png;;
@@ -32,8 +35,9 @@ elif [[ "$1" == "-c" ]]; then
 	echo "Flag -c detected. Now running : python3 fluid-cuda.py -c";
 	python3 fluid-cuda.py -c;
 	./png_to_mkv
+
 elif [[ "$1" == "-w" ]]; then
-	read -p "remove previously computed results ? [y/N] " resp
+	read -p "remove previously computed results renders ? [y/N] " resp
 	case $resp in
 		"y")
 			rm res/*.png;;
@@ -49,8 +53,9 @@ elif [[ "$1" == "-w" ]]; then
 	echo "Flag -w detected. Now running : python3 fluid-cuda.py -w";
 	python3 fluid-cuda.py -w;
 	./png_to_mkv
+
 elif [[ "$1" == "-cw" ]]; then
-	read -p "remove previously computed results ? [y/N] " resp
+	read -p "remove previously computed results renders ? [y/N] " resp
 	case $resp in
 		"y")
 			rm res/*.png;;
@@ -66,8 +71,9 @@ elif [[ "$1" == "-cw" ]]; then
 	echo "Flag -cw detected. Now running : python3 fluid-cuda.py -cw";
 	python3 fluid-cuda.py -cw;
 	./png_to_mkv
+
 elif [[ "$1" == "-wc" ]]; then
-	read -p "remove previously computed results ? [y/N] " resp
+	read -p "remove previously computed results renders ? [y/N] " resp
 	case $resp in
 		"y")
 			rm res/*.png;;
@@ -84,6 +90,6 @@ elif [[ "$1" == "-wc" ]]; then
 	python3 fluid-cuda.py -wc;
 	./png_to_mkv
 else
-	echo "No or bad flag deteced, use '-c / -w / -cw / -wc / -0'"
+	echo "No or bad flag detected, use '-c / -w / -cw / -wc / -0'"
 fi
 

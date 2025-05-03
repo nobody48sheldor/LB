@@ -14,7 +14,25 @@ def concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx):
     for k in range(particules_x_coord.size):
         psi[particules_y_coord_CPU[k]][ particules_x_coord_CPU[k]] += 1
     maxi = max( [max(psi[j,:]) for j in range(Ny)] )
+    mean_val= np.mean( [np.mean(psi[j,:]) for j in range(Ny)] )
     return(psi, psi/maxi, maxi)
+
+def norm_grad_psi(psi,dx,dy):
+    partial_psi_x = np.zeros_like(psi)
+    partial_psi_y = np.zeros_like(psi)
+
+    partial_psi_x[:, 1:-1] = (psi[:, 2:] - psi[:, :-2]) / (2 * dx)
+    partial_psi_y[1:-1, :] = (psi[2:, :] - psi[:-2, :]) / (2 * dy)
+
+    # aux bords
+
+    partial_psi_x[:, 0] = (psi[:, 1] - psi[:, 0]) / dx
+    partial_psi_x[:, 0] = (psi[:, 1] - psi[:, 0]) / dx
+
+    partial_psi_y[0, :] = (psi[1, :] - psi[0, :]) / dy
+    partial_psi_y[0, :] = (psi[1, :] - psi[0, :]) / dy
+
+    return(np.sqrt(partial_psi_x**2 + partial_psi_y**2 ))
 
 def main():
     img = mpimg.imread('obstacle.png')
@@ -22,10 +40,11 @@ def main():
     Ny = len(img)
     #print(Nx, Ny)
     #print()
-    Nt = 14000
+    Nt = 8000
     tau = 0.65
-    time_save = 3000
-    time_stream = 3000
+    time_save = 5000
+    time_stream = 5000
+    time_eq =7800
     particule_stream_active = True
     flux = True
     v_init = 3/9
@@ -37,7 +56,9 @@ def main():
 
     L = 5
     l = L*Ny/Nx
-    steps_to_reach = 3000*20
+    dx = L/Nx
+    dy = l/Nx
+    steps_to_reach = time_stream*20
     delta_t = (mass*L)/(v_init*steps_to_reach)
     D = 2.3*(10**(-9))
     diffusion = np.sqrt(6*D/delta_t)
@@ -54,7 +75,7 @@ def main():
             calced_data = True
         if sys.argv[1]=="-cw" or sys.argv[1]=="-wc":
             #Nt = 2500
-            time_stream = 3000
+            time_stream = time_stream
             write_data = True
             calced_data = True
 
@@ -126,7 +147,7 @@ def main():
     if particule_stream_active:
         psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
         psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
-        #print("maxi_init = ", maxi)
+        print("maxi_init = ", maxi)
     
         img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
         img_.set_alpha(alpha)
@@ -138,6 +159,10 @@ def main():
     colorbar = plt.colorbar(img)
     colorbar.set_label('Momentum', fontsize=20)
     colorbar.ax.tick_params(labelsize=15)
+
+
+
+
 
     for time in range(Nt):
         prev_len = 0
@@ -285,7 +310,7 @@ def main():
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
-                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5)**0.7, gaussian_filter(alpha, sigma=5)**0.7
+                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=3), gaussian_filter(alpha, sigma=3)
 
                 #print("maxi_after = ",maxi)
 
@@ -293,6 +318,15 @@ def main():
 
                 colorbar_.update_normal(img_)
                 img_.set_alpha(alpha_gaussian)
+
+                print("particle stream active; maxi = ", maxi,"\n")
+
+                # diffusion-convection equation
+                if particule_stream_active and time>=time_eq :
+                    plt.title("time : "+str(time) + " | particules : " + str(particules_x.size) + " | D is being plotted", size=50, pad=50)
+                    D_field = (momentum_field*psi_concentration_gaussian)/(norm_grad_psi(psi_concentration_gaussian,dx,dy))
+                    plt.imshow(momentum_field, interpolation='nearest', cmap=my_cmap)
+
 
             colorbar.update_normal(img)
             plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
@@ -308,6 +342,7 @@ def main():
             plt.savefig("res/res_stream"+number+".png", dpi=100)
             # print(number, " / ", Nt)
             percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ]"
+
             print(" " * prev_len, end="\r")  # Clear previous output
             print(percent , end="\r", flush=True)  # Print new output
             prev_len = len(percent)

@@ -5,6 +5,7 @@ get_latest_file() {
 while true;
 do
 	clear;
-	kitten icat $(get_latest_file "res");
+	# kitten icat $(get_latest_file "res");
+	feh --auto-zoom --scale-down --fullscreen "$(get_latest_file "res")";
 	sleep 10;
 done;
