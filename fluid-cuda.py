@@ -40,11 +40,10 @@ def main():
     Ny = len(img)
     #print(Nx, Ny)
     #print()
-    Nt = 8000
+    Nt = 10000
     tau = 0.65
-    time_save = 5000
-    time_stream = 5000
-    time_eq =7800
+    time_save = 1000
+    time_stream = 1000
     particule_stream_active = True
     flux = True
     v_init = 3/9
@@ -82,9 +81,9 @@ def main():
     #print("writing data at time 1000= ", write_data)
     #print("using previously calculated data = ",calced_data)
 
-    x_offset = 10
-    y_offset = 250
-    x_range = 10
+    x_offset = 20
+    y_offset = 245
+    x_range = 20
     y_range = 30
     particule_n = 1500
     particules_x = x_offset + x_range * cp.random.randn(particule_n)
@@ -147,7 +146,7 @@ def main():
     if particule_stream_active:
         psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
         psi_concentration_gaussian = gaussian_filter(psi_concentration, sigma=3)
-        print("maxi_init = ", maxi)
+        #print("maxi_init = ", maxi)
     
         img_ = plt.imshow(psi_concentration_gaussian, cmap=my_cmap_red)
         img_.set_alpha(alpha)
@@ -263,14 +262,18 @@ def main():
                 particules_y_coord = cp.concatenate( (particules_y_coord, particules_y_add) )
 
 
-            out_of_bounds_mask = (particules_x < 2) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 2)
+            out_of_bounds_mask = (particules_x < 1) | (particules_x >= (Nx - 2)) | (particules_y >= (Ny - 2)) | (particules_y < 1)
             in_bounds_mask = ~out_of_bounds_mask
             particules_x_coord = cp.floor(particules_x).astype(int)
             particules_y_coord = cp.floor(particules_y).astype(int)
             #particules_x_coord[in_bounds_mask] = cp.floor(particules_x[in_bounds_mask]).astype(int)
             #particules_y_coord[in_bounds_mask] = cp.floor(particules_y[in_bounds_mask]).astype(int)
 
-            k_list = cp.where(out_of_bounds_mask)[0]
+            in_obstacle_mask = obstacle[particules_y_coord, particules_x_coord].astype(bool)
+
+            full_mask = out_of_bounds_mask | in_obstacle_mask 
+
+            k_list = cp.where(full_mask)[0]
             if k_list.size > 0:
                 particules_x = cp.delete(particules_x, k_list)
                 particules_y = cp.delete(particules_y, k_list)
@@ -310,7 +313,7 @@ def main():
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
-                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=3), gaussian_filter(alpha, sigma=3)
+                psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5), gaussian_filter(alpha, sigma=5)**0.5
 
                 #print("maxi_after = ",maxi)
 
@@ -319,15 +322,10 @@ def main():
                 colorbar_.update_normal(img_)
                 img_.set_alpha(alpha_gaussian)
 
-                print("particle stream active; maxi = ", maxi,"\n")
+                #print("particle stream active; maxi = ", maxi,"\n")
 
                 # diffusion-convection equation
-                if particule_stream_active and time>=time_eq :
-                    plt.title("time : "+str(time) + " | particules : " + str(particules_x.size) + " | D is being plotted", size=50, pad=50)
-                    D_field = (momentum_field*psi_concentration_gaussian)/(norm_grad_psi(psi_concentration_gaussian,dx,dy))
-                    plt.imshow(momentum_field, interpolation='nearest', cmap=my_cmap)
-
-
+   
             colorbar.update_normal(img)
             plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
             #plt.scatter(particules_x, particules_y, color='black', marker='x', s=200)
@@ -341,13 +339,23 @@ def main():
                 number = str(time//step)
             plt.savefig("res/res_stream"+number+".png", dpi=100)
             # print(number, " / ", Nt)
-            percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ]"
+            percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ] ~ [ {time} / {Nt} ] ~ maxi = {maxi}"
 
             print(" " * prev_len, end="\r")  # Clear previous output
             print(percent , end="\r", flush=True)  # Print new output
             prev_len = len(percent)
             #plt.pause(0.001)
             plt.cla()
+
+    if particule_stream_active:
+        plt.clf()
+        plt.title("D(x,y) at equilibrium, with a factor", size=20, pad=50)
+        D_field = (momentum_field*psi_concentration_gaussian)/(norm_grad_psi(psi_concentration_gaussian,dx,dy))
+        img_D = plt.imshow(momentum_field, interpolation='nearest', cmap=my_cmap)
+        img_border = plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap_red)
+        colorbar_D = plt.colorbar(img_D)
+        plt.savefig("res/D.png", dpi=100)
+        plt.show()
 
 
 
