@@ -38,16 +38,17 @@ def main():
     img = mpimg.imread('obstacle.png')
     Nx = len(img[0])
     Ny = len(img)
-    #print(Nx, Ny)
-    #print()
-    Nt = 10000
-    tau = 0.65
-    time_save = 1000
+    #Nt = 10000
+    Nt = 40000
+    tau = 0.81
+    time_save = 3000
     time_stream = 1000
     particule_stream_active = True
     flux = True
-    v_init = 3/9
-    mass = 0.2
+    #v_init = 3/9
+    #v_init = 0.5
+    v_init = 0.13
+    #mass = 0.02/(v_init*Nx)
     
     write_data = False
     calced_data = False
@@ -56,13 +57,19 @@ def main():
     L = 5
     l = L*Ny/Nx
     dx = L/Nx
-    dy = l/Nx
+    dy = 0.8
+    dl = L/(100*Nx)
     steps_to_reach = time_stream*20
-    delta_t = (mass*L)/(v_init*steps_to_reach)
-    D = 2.3*(10**(-9))
-    diffusion = np.sqrt(6*D/delta_t)
-    print("d = ", diffusion)
-    #diffusion = 0.2
+    D = 2.23*(10**(-6))
+    dt = dl*dl/(2*D)
+    #D = 2.3*(10**(-9))
+    #D = dx*dx/(2*delta_t)
+    print("\n")
+    print("\n")
+    print(f"dx = {dx}, dy = {dy}, dt = {dt}, D = {D}, v_init = {v_init}")
+    print("\n")
+    print("\n")
+    mass = 0.005/(v_init*Nx/L)
 
     if len(sys.argv) == 2:
         #print(sys.argv[1])
@@ -84,14 +91,12 @@ def main():
     x_offset = 20
     y_offset = 245
     x_range = 20
-    y_range = 30
+    y_range = 25
     particule_n = 1500
     particules_x = x_offset + x_range * cp.random.randn(particule_n)
     particules_x_coord = cp.asarray([int(x) for x in particules_x.get()])
     particules_y = y_offset + y_range * cp.random.randn(particule_n)
     particules_y_coord = cp.asarray([int(y) for y in particules_y.get()])
-    
-    delta_x = mass**(1/3)
     
     x = np.linspace(0, Nx-1, Nx)
     y = np.linspace(0, Ny-1, Ny)
@@ -131,8 +136,8 @@ def main():
     
     obstacle_shape = cp.where(obstacle, 1, cp.nan)
     
-    plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
-    plt.show()
+    #plt.imshow(obstacle_shape.get(), interpolation='nearest', cmap=my_cmap)
+    #plt.show()
     
     fig = plt.figure(figsize=(38.40,21.60))
 
@@ -218,6 +223,11 @@ def main():
 
 
         # save computed velocities
+        if time==0:
+            print(x_offset,y_offset, "\n")
+            print("momentum = ",np.sqrt( (momentum_y.get()[y_offset,x_offset] )**2 +  (momentum_x.get()[y_offset,x_offset] )**2 ), "\n")
+            mass = np.sqrt( (momentum_y.get()[y_offset,x_offset] )**2 +  (momentum_x.get()[y_offset,x_offset] )**2 )/(2*v_init*Nx/L)
+
 
         if time==time_save:
             if write_data:
@@ -235,14 +245,14 @@ def main():
 
         if (time > time_stream) and particule_stream_active:
             if not brownian:
-                particules_x += momentum_x[particules_y_coord, particules_x_coord] * (tau/mass)
-                particules_y += momentum_y[particules_y_coord, particules_x_coord] * (tau/mass)
+                particules_x += momentum_x[particules_y_coord, particules_x_coord] * (dt/mass)
+                particules_y += momentum_y[particules_y_coord, particules_x_coord] * (dt/mass)
             else:
                 size = particules_x.size
                 rand_x = cp.random.uniform(-1,1,size=size)
                 rand_y = cp.random.uniform(-1,1,size=size)
-                particules_x += momentum_x[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_x / mass )
-                particules_y += momentum_y[particules_y_coord, particules_x_coord]*(tau/mass) + ( diffusion * rand_y / mass )
+                particules_x += momentum_x[particules_y_coord, particules_x_coord]*(dt/mass) + ( dl * rand_x )
+                particules_y += momentum_y[particules_y_coord, particules_x_coord]*(dt/mass) + ( dl * rand_y )
 
 
             # Remove particles that are out of bounds (use CuPy delete or boolean indexing)
@@ -251,8 +261,8 @@ def main():
                 #print("y_low = ", (y_offset - y_range), "y_high = ", (y_offset + y_range))
                 #print("x_low = ", (x_offset - x_range), "x_high = ", (x_offset + x_range))
                 momentum_x_avg = cp.mean( momentum_x[ (y_offset - y_range) : (y_offset + y_range), (x_offset - x_range) : (x_offset + x_range) ] ).get()
-                distance = (momentum_x_avg / mass ) * tau
-                number_add = int( particule_n * ( distance / x_range) )
+                distance = (momentum_x_avg / mass ) * dt
+                number_add = int( abs( particule_n * ( distance / x_range) ))
                 #print("mom_x_avg = ", momentum_x_avg, "distance = ", distance, "number_add = ", number_add)
                 particules_x_add = ( x_offset - (distance/2) ) + distance * cp.random.randn(number_add)
                 particules_y_add = y_offset + y_range * cp.random.randn(number_add)
@@ -287,7 +297,7 @@ def main():
        
         step=20
         if time%step== 0:
-            plt.title("time : "+str(time) + " | particules : " + str(particules_x.size), size=50, pad=50)
+            plt.title("time : "+str(dt*time)[:5] + "s" + " | particules : " + str(particules_x.size), size=50, pad=50)
 
 
             # curl
@@ -311,6 +321,8 @@ def main():
             momentum_field = cp.sqrt(momentum_x**2 + momentum_y**2).get()
             img = plt.imshow(momentum_field, cmap='rainbow', alpha=0.2)
             plt.streamplot(X, Y, momentum_x.get(), momentum_y.get(), density=1.2, linewidth=1.3, arrowsize=2, arrowstyle='->', color='white')
+            plt.xlabel("$x$", fontsize=30)
+            plt.ylabel("$y$", fontsize=30)
             if particule_stream_active and time>=time_stream :
                 psi_concentration, alpha, maxi = concentration(particules_x_coord, particules_y_coord, particule_n, Ny, Nx)
                 psi_concentration_gaussian, alpha_gaussian = gaussian_filter(psi_concentration, sigma=5), gaussian_filter(alpha, sigma=5)**0.5
@@ -332,14 +344,21 @@ def main():
 
 
             if len(str(time//step)) == 1:
-                number = "00"+str(time//step)
+                number = "000"+str(time//step)
             if len(str(time//step)) == 2:
-                number = "0"+str(time//step)
+                number = "00"+str(time//step)
             if len(str(time//step)) == 3:
+                number = "0"+str(time//step)
+            if len(str(time//step)) == 4:
                 number = str(time//step)
+            plt.xticks(ticks=[(i*Nx/10) for i in range(11)], labels=[str(i*L/10)[:5] for i in range(11)], fontsize=18)
+            plt.yticks(ticks=[(i*Ny/10) for i in range(11)], labels=[str(i*l/10)[:5] for i in range(11)], fontsize=18)
             plt.savefig("res/res_stream"+number+".png", dpi=100)
             # print(number, " / ", Nt)
-            percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ] ~ [ {time} / {Nt} ] ~ maxi = {maxi}"
+            if time<time_save:
+                percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ] ~ [ {time} / {Nt} ] ~ maxi = {maxi}"
+            if time>=time_save:
+                percent = f"  {str(int(100*time/Nt))}% ~ [ {number} / {Nt//step} ] ~ [ {time} / {Nt} ] ~ maxi = {maxi} | time-saved"
 
             print(" " * prev_len, end="\r")  # Clear previous output
             print(percent , end="\r", flush=True)  # Print new output

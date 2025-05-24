@@ -1,4 +1,4 @@
-ffmpeg -framerate 8 -i res/res_stream%03d.png -c:v copy animation.mkv
+ffmpeg -framerate 8 -i res/res_stream%04d.png -c:v copy animation.mkv
 
 mpv animation.mkv
 
