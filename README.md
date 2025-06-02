@@ -45,7 +45,7 @@ Create in the working dierctory a `res/` and a `renders/` folder and then run `p
 In both cases, the `-w` flag will write the data at time `t=3000` so that it can be re-used afterward by running with the `-c` flag,  you can combine the two with `-cw` (the  flags can be applied to either `run-CPU` and `run-GPU` or the python scripts themselves)
 
 ### --> further reading / watching
-
+[test](https://drive.google.com/file/d/1bVNeHTov-LnO1EGK0JgOPklfIWB2ru1N/view?usp=sharing)
 - Lattice Boltzmann Method (LBM or LB) : [wikipedia's page](https://en.wikipedia.org/wiki/Lattice_Boltzmann_methods)
 - First code based on this code video : [Matias Ortiz on youtube](https://youtu.be/JFWqCQHg-Hs?si=KBw4YX2WtZV_-3Ng)
 - blog post that the video is inspired from : [Philip Mocz blog post](https://medium.com/swlh/create-your-own-lattice-boltzmann-simulation-with-python-8759e8b53b1c)
